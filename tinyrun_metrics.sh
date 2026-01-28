@@ -104,8 +104,14 @@ source .venv/bin/activate
 if ! command -v cargo >/dev/null 2>&1; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 fi
-# shellcheck disable=SC1091
-source "$HOME/.cargo/env"
+
+# Prefer Rustup's standard env file if present; otherwise, warn but continue.
+if [ -f "$HOME/.cargo/env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.cargo/env"
+else
+  echo "Warning: $HOME/.cargo/env not found; ensure Cargo is on your PATH (e.g., reopen your shell or add ~/.cargo/bin to PATH)."
+fi
 
 # Build the rustbpe Tokenizer (if not already built)
 if ! python -c "import rustbpe" >/dev/null 2>&1; then
@@ -198,11 +204,16 @@ run_phase "07_sft_eval" \
     --model-tag="$MODEL_TAG"
 
 # -----------------------------------------------------------------------------
-# 10) Report generation (optional to log; you can wrap if you want)
+# 10) Report generation (training + HTML GPU metrics dashboard)
 
 python -m nanochat.report generate
+
+# Best-effort HTML GPU metrics report; do not fail the training run if it errors.
+python -m scripts.metrics_report --metrics-dir "$METRICS_DIR" --out "$METRICS_DIR/report.html" || \
+  echo "Warning: metrics HTML report generation failed."
 
 echo ""
 echo "Done."
 echo "GPU metrics CSVs saved in: $METRICS_DIR"
 echo "Example: ls -lh $METRICS_DIR"
+echo "HTML GPU dashboard (if generated): $METRICS_DIR/report.html"
