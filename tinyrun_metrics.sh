@@ -93,6 +93,8 @@ run_phase() {
 # 2) Python venv setup with uv
 
 command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+hash -r
 [ -d ".venv" ] || uv venv
 uv sync --extra gpu
 # shellcheck disable=SC1091
